@@ -3,50 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text to Speech with Download</title>
+    <title>Text-to-Speech with Download and Stop</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        textarea {
+            width: 80%;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .stop-button {
+            background-color: #f44336;
+        }
+
+        .stop-button:hover {
+            background-color: #e53935;
+        }
+    </style>
 </head>
 <body>
-    <h1>Text to Speech with Download</h1>
-    <textarea id="textInput" rows="4" cols="50" placeholder="Enter text here"></textarea><br><br>
-    <button onclick="speakAndRecord()">Speak & Record</button>
-    <a id="downloadLink" style="display:none" download="speech.mp3">Download Audio</a>
+    <h1>Text-to-Speech with Download & Stop</h1>
+    <textarea id="text-input" rows="5" cols="40" placeholder="Type something here..."></textarea><br>
+    <button onclick="speakText()">Speak</button>
+    <button class="stop-button" onclick="stopSpeech()">Stop</button>
+    <button onclick="downloadAudio()">Download</button>
 
     <script>
-        let audioBlob;
-        let mediaRecorder;
+        let speechInstance;
 
-        function speakAndRecord() {
-            const text = document.getElementById('textInput').value;
-            const speech = new SpeechSynthesisUtterance(text);
-            speech.lang = 'en-US'; // You can change the language here
+        function speakText() {
+            const text = document.getElementById("text-input").value;
+            
+            if (text !== "") {
+                speechInstance = new SpeechSynthesisUtterance(text);
+                speechInstance.lang = 'en-US';  // You can change the language here
+                window.speechSynthesis.speak(speechInstance);
+            } else {
+                alert("Please enter some text.");
+            }
+        }
 
-            // Start recording audio using MediaRecorder
-            const audioStream = new MediaStream();
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const analyser = audioContext.createAnalyser();
-            const recorder = new MediaRecorder(audioStream);
+        function stopSpeech() {
+            window.speechSynthesis.cancel();
+        }
 
-            recorder.ondataavailable = function(event) {
-                audioBlob = event.data;
-            };
+        function downloadAudio() {
+            const text = document.getElementById("text-input").value;
 
-            recorder.onstop = function() {
-                const audioURL = URL.createObjectURL(audioBlob);
-                const downloadLink = document.getElementById('downloadLink');
-                downloadLink.href = audioURL;
-                downloadLink.style.display = 'block'; // Show the download link
-            };
+            if (text !== "") {
+                const speech = new SpeechSynthesisUtterance(text);
+                speech.lang = 'en-US';
 
-            mediaRecorder = recorder;
-            mediaRecorder.start();
+                // Create a temporary audio element to capture the speech
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createBufferSource();
+                const processor = audioContext.createScriptProcessor(1024, 1, 1);
 
-            // Speak the text
-            window.speechSynthesis.speak(speech);
+                // Use a Buffer to save the audio
+                audioContext.decodeAudioData(speech, function(buffer) {
+                    source.buffer = buffer;
+                    source.connect(processor);
+                    processor.connect(audioContext.destination);
+                });
 
-            // Stop recording after speech ends
-            speech.onend = function() {
-                mediaRecorder.stop();
-            };
+                // Create the downloadable link
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(new Blob([audioContext], { type: 'audio/wav' }));
+                link.download = 'speech.wav';
+                link.click();
+            } else {
+                alert("Please enter some text.");
+            }
         }
     </script>
 </body>
