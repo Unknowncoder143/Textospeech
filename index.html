@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech with Download</title>
+</head>
+<body>
+    <h1>Text to Speech with Download</h1>
+    <textarea id="textInput" rows="4" cols="50" placeholder="Enter text here"></textarea><br><br>
+    <button onclick="speakAndRecord()">Speak & Record</button>
+    <a id="downloadLink" style="display:none" download="speech.mp3">Download Audio</a>
+
+    <script>
+        let audioBlob;
+        let mediaRecorder;
+
+        function speakAndRecord() {
+            const text = document.getElementById('textInput').value;
+            const speech = new SpeechSynthesisUtterance(text);
+            speech.lang = 'en-US'; // You can change the language here
+
+            // Start recording audio using MediaRecorder
+            const audioStream = new MediaStream();
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = audioContext.createAnalyser();
+            const recorder = new MediaRecorder(audioStream);
+
+            recorder.ondataavailable = function(event) {
+                audioBlob = event.data;
+            };
+
+            recorder.onstop = function() {
+                const audioURL = URL.createObjectURL(audioBlob);
+                const downloadLink = document.getElementById('downloadLink');
+                downloadLink.href = audioURL;
+                downloadLink.style.display = 'block'; // Show the download link
+            };
+
+            mediaRecorder = recorder;
+            mediaRecorder.start();
+
+            // Speak the text
+            window.speechSynthesis.speak(speech);
+
+            // Stop recording after speech ends
+            speech.onend = function() {
+                mediaRecorder.stop();
+            };
+        }
+    </script>
+</body>
+</html>
